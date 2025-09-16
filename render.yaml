@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: xlf-translator
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLAUDE_API_KEY
+        sync: false  # Configure manually in Render dashboard
+    healthCheckPath: /health
+    autoDeploy: true
+    
+# Optional: Static site for just frontend files if needed later
+# - type: static
+#   name: xlf-translator-static  
+#   buildCommand: echo "Static files ready"
+#   publishPath: .
+#   pullRequestPreviewsEnabled: true
+
+# Build specifications
+build:
+  commands:
+    - npm ci --production=false
+    - echo "Dependencies installed successfully"
+
+# Environment-specific settings
+environments:
+  production:
+    variables:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      
+  preview:
+    variables:
+      NODE_ENV: development
+      LOG_LEVEL: debug

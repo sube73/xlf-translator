@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLF Translator - Render Native</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --context-color: #8b5cf6;
+            --success-color: #059669;
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+            color: white;
+            padding: 16px 24px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .version-badge {
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 3px 10px;
+            border-radius: 16px;
+        }
+
+        .header p {
+            margin: 4px 0 0 0;
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            flex: 0 0 35%;
+            padding: 16px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            margin-top: 12px;
+        }
+
+        .section:first-child .section-title {
+            margin-top: 0;
+        }
+
+        /* File input */
+        .file-input-section {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+
+        .file-input-section:hover {
+            border-color: var(--primary-color);
+            background: white;
+        }
+
+        .file-input-section.dragover {
+            border-color: var(--primary-color);
+            background: #eff6ff;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .file-input-label:hover {
+            background: var(--primary-hover);
+        }
+
+        .file-info {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* Language selection */
+        .language-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            background: white;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgb(37 99 235 / 0.1);
+        }
+
+        /* Two-step button layout */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .processing-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-width: 100px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-context {
+            background: var(--context-color);
+            color: white;
+        }
+
+        .btn-context:hover:not(:disabled) {
+            background: #7c3aed;
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #047857;
+            transform: translateY(-1px);
+        }
+
+        /* Context display */
+        .context-section {
+            margin-top: 16px;
+            display: none;
+        }
+
+        .context-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .context-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-small:hover {
+            background: white;
+            color: var(--text-primary);
+        }
+
+        .context-display {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Progress stats */
+        .progress-stats {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .progress-percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success-color);
+            text-align: center;
+        }
+
+        .highlight {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        /* Log section */
+        .log-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .log-header {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .log-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .log-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-content::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .log-content::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+            padding: 2px 0;
+        }
+
+        .log-timestamp {
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+
+        .log-success { color: var(--success-color); }
+        .log-error { color: #dc2626; }
+        .log-context { color: var(--context-color); }
+        .log-info { color: #0ea5e9; }
+        .log-sequential { color: #f59e0b; }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .left-panel {
+                flex: none;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .processing-buttons {
+                flex-direction: column;
+            }
+            
+            .language-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            XLF Translator 
+            <span class="version-badge">Render v2.0</span>
+        </h1>
+        <p>Advanced XLF Translation with Claude AI - Render Native Platform</p>
+    </div>
+
+    <div class="content">
+        <div class="left-panel">
+            <!-- File Upload Section -->
+            <div class="section">
+                <div class="section-title">Upload XLF File</div>
+                <div class="file-input-section" id="fileUploadZone">
+                    <input type="file" id="fileInput" class="file-input" accept=".xlf,.xliff">
+                    <label for="fileInput" class="file-input-label">Choose File</label>
+                    <div class="file-info">or drag and drop XLF file here</div>
+                </div>
+                <div id="fileInfo" style="margin-top: 8px; font-size: 0.85rem; color: var(--text-secondary);"></div>
+            </div>
+
+            <!-- Language Selection -->
+            <div class="section">
+                <div class="section-title">Translation Settings</div>
+                <div class="language-grid">
+                    <div class="input-group">
+                        <label for="sourceLang">Source Language</label>
+                        <select id="sourceLang">
+                            <option value="en" selected>English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="it">Italian</option>
+                            <option value="pt">Portuguese</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="targetLang">Target Language</label>
+                        <select id="targetLang">
+                            <option value="ar">Arabic</option>
+                            <option value="zh-cn">Chinese (Simplified)</option>
+                            <option value="zh-tw">Chinese (Traditional)</option>
+                            <option value="cs">Czech</option>
+                            <option value="da">Danish</option>
+                            <option value="nl">Dutch</option>
+                            <option value="en">English</option>
+                            <option value="fi">Finnish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="el">Greek</option>
+                            <option value="he">Hebrew</option>
+                            <option value="hi">Hindi</option>
+                            <option value="hu">Hungarian</option>
+                            <option value="it">Italian</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="no">Norwegian</option>
+                            <option value="pl">Polish</option>
+                            <option value="pt">Portuguese</option>
+                            <option value="ro">Romanian</option>
+                            <option value="ru">Russian</option>
+                            <option value="es" selected>Spanish</option>
+                            <option value="sv">Swedish</option>
+                            <option value="th">Thai</option>
+                            <option value="tr">Turkish</option>
+                            <option value="uk">Ukrainian</option>
+                            <option value="vi">Vietnamese</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Two-step Processing -->
+            <div class="section">
+                <div class="section-title">Processing</div>
+                <div class="action-buttons">
+                    <div class="processing-buttons">
+                        <button class="btn-primary" id="processBtn" disabled>
+                            <span class="btn-text">Process XLF</span>
+                        </button>
+                        <button class="btn-context" id="translateBtn" disabled>
+                            <span class="btn-text">Translate XLF</span>
+                        </button>
+                    </div>
+                    <button class="btn-success" id="downloadBtn" disabled>Download XLF</button>
+                </div>
+            </div>
+
+            <!-- Context Display -->
+            <div class="section context-section" id="contextSection">
+                <div class="context-header">
+                    <div class="section-title">Translation Context</div>
+                    <div class="context-actions">
+                        <button class="btn-small" onclick="copyContextToClipboard()">Copy</button>
+                        <button class="btn-small" onclick="toggleContextDisplay()">Hide</button>
+                    </div>
+                </div>
+                <div class="context-display" id="contextDisplay"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <!-- Progress Stats -->
+            <div class="progress-stats" id="progressSection">
+                <div class="stats-header">
+                    <span><strong>Texts:</strong> <span class="highlight" id="processedTexts">0</span>/<span id="totalTexts">0</span></span>
+                    <span><strong>Chunks:</strong> <span class="highlight" id="completedChunks">0</span>/<span id="totalChunks">0</span></span>
+                </div>
+                <div class="progress-percentage" id="progressPercentage">0%</div>
+            </div>
+
+            <!-- Log Section -->
+            <div class="log-section">
+                <div class="log-header">Processing Log</div>
+                <div class="log-content" id="logContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // XLF TRANSLATOR - RENDER NATIVE CLIENT
+        // Clean implementation without Netlify dependencies
+        // ========================================
+
+        class XLFTranslatorRender {
+            constructor() {
+                this.fileContent = null;
+                this.allTexts = [];
+                this.chunks = [];
+                this.processedData = null;
+                this.translationContext = null;
+                this.isProcessed = false;
+                this.stats = {
+                    totalTexts: 0,
+                    processedTexts: 0,
+                    totalChunks: 0,
+                    completedChunks: 0
+                };
+
+                this.initializeEventListeners();
+                this.log('info', '🚀 XLF Translator - Render Native v2.0 initialized');
+            }
+
+            initializeEventListeners() {
+                // File input
+                const fileInput = document.getElementById('fileInput');
+                const uploadZone = document.getElementById('fileUploadZone');
+                
+                fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                
+                // Drag and drop
+                uploadZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.add('dragover');
+                });
+                
+                uploadZone.addEventListener('dragleave', () => {
+                    uploadZone.classList.remove('dragover');
+                });
+                
+                uploadZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    uploadZone.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.processFile(files[0]);
+                    }
+                });
+
+                // Processing buttons
+                document.getElementById('processBtn').addEventListener('click', () => this.processXLF());
+                document.getElementById('translateBtn').addEventListener('click', () => this.translateXLF());
+                document.getElementById('downloadBtn').addEventListener('click', () => this.downloadXLF());
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            processFile(file) {
+                if (!file.name.endsWith('.xlf') && !file.name.endsWith('.xliff')) {
+                    this.log('error', 'Please select a valid XLF file');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.fileContent = e.target.result;
+                    document.getElementById('fileInfo').textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                    document.getElementById('processBtn').disabled = false;
+                    this.log('success', `File loaded: ${file.name}`);
+                    this.resetProcessingState();
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            resetProcessingState() {
+                this.isProcessed = false;
+                this.translationContext = null;
+                this.allTexts = [];
+                this.chunks = [];
+                this.processedData = null;
+                
+                // Reset button states
+                document.getElementById('translateBtn').disabled = true;
+                document.getElementById('downloadBtn').disabled = true;
+                document.getElementById('contextSection').style.display = 'none';
+                
+                // Reset stats
+                this.updateProgressStats(0, 0, 0, 0, 0);
+            }
+
+            async processXLF() {
+                if (!this.fileContent) {
+                    this.log('error', 'Please select an XLF file first');
+                    return;
+                }
+
+                try {
+                    this.log('info', '📋 Step 1: Processing XLF and generating context...');
+                    document.getElementById('processBtn').disabled = true;
+
+                    // 1. Extract texts from XLF
+                    this.extractTextsFromXLF();
+                    
+                    // 2. Generate translation context
+                    await this.generateTranslationContext();
+                    
+                    // 3. Mark as processed
+                    this.isProcessed = true;
+                    
+                    // 4. Enable translate button
+                    document.getElementById('translateBtn').disabled = false;
+                    document.getElementById('processBtn').disabled = false; // Allow re-processing
+                    
+                    this.log('success', 'Step 1 completed! XLF processed and context generated.');
+                    this.log('info', 'Click "Translate XLF" to begin translation with contextual intelligence.');
+                    
+                } catch (error) {
+                    this.log('error', `Processing error: ${error.message}`);
+                    document.getElementById('processBtn').disabled = false;
+                }
+            }
+
+            extractTextsFromXLF() {
+                console.log('[XLF-EXTRACT] Starting text extraction');
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(this.fileContent, 'text/xml');
+                
+                // Find all trans-unit elements
+                const transUnits = xmlDoc.querySelectorAll('trans-unit');
+                this.allTexts = [];
+                
+                transUnits.forEach((transUnit, index) => {
+                    const sourceElement = transUnit.querySelector('source');
+                    if (sourceElement) {
+                        let sourceText = this.extractTextContent(sourceElement);
+                        
+                        if (sourceText && sourceText.trim().length > 0) {
+                            this.allTexts.push({
+                                id: transUnit.getAttribute('id') || `text_${index}`,
+                                text: sourceText.trim(),
+                                originalElement: sourceElement
+                            });
+                        }
+                    }
+                });
+                
+                this.stats.totalTexts = this.allTexts.length;
+                this.updateProgressStats(0, this.stats.totalTexts, 0, 0, 0);
+                
+                console.log(`[XLF-EXTRACT] Extracted ${this.allTexts.length} texts from XLF`);
+                this.log('success', `Extracted ${this.allTexts.length} texts from XLF file`);
+            }
+
+            extractTextContent(element) {
+                let textContent = '';
+                
+                for (const node of element.childNodes) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        textContent += node.textContent;
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Preserve XML structure for elements like <g>, <br/>, etc.
+                        textContent += node.outerHTML;
+                    }
+                }
+                
+                return textContent.trim();
+            }
+
+            async generateTranslationContext() {
+                console.log('[CONTEXT-GEN] Starting context generation');
+                
+                const sampleTexts = this.allTexts.slice(0, 25).map(t => t.text);
+                const targetLang = document.getElementById('targetLang').value;
+                
+                try {
+                    const response = await fetch('/api/generate-context', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json; charset=utf-8'
+                        },
+                        body: JSON.stringify({
+                            sampleTexts: sampleTexts,
+                            targetLang: targetLang,
+                            userContext: '',
+                            contentType: 'educational'
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Context API error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.error || 'Context generation failed');
+                    }
+
+                    this.translationContext = result.translationContext;
+                    this.displayContext();
+                    
+                    console.log(`[CONTEXT-GEN] Context generated: ${this.translationContext.length} chars`);
+                    this.log('context', `Translation context generated (${this.translationContext.length} chars)`);
+                    
+                } catch (error) {
+                    console.error('[CONTEXT-GEN] Context generation failed:', error);
+                    
+                    // Enhanced local fallback
+                    this.translationContext = this.generateLocalContext(sampleTexts, targetLang);
+                    this.displayContext();
+                    
+                    this.log('context', `Enhanced local context generated (${this.translationContext.length} chars)`);
+                }
+            }
+
+            generateLocalContext(sampleTexts, targetLang) {
+                // Enhanced local context generation with domain detection
+                const allContent = sampleTexts.join(' ').toLowerCase();
+                
+                let contextualPrompt = `**CONTENT TYPE**: Educational/Training Content\n`;
+                
+                // Domain detection
+                if (allContent.includes('prl') || allContent.includes('prevención') || allContent.includes('workplace safety')) {
+                    contextualPrompt += `**DOMAIN**: Occupational Health & Safety (PRL)\n`;
+                    contextualPrompt += `**TERMINOLOGY APPROACH**: Professional ${targetLang} workplace safety terminology, technical precision for ergonomic concepts\n`;
+                } else if (allContent.includes('api') || allContent.includes('system') || allContent.includes('technical')) {
+                    contextualPrompt += `**DOMAIN**: Technical & IT Training\n`;
+                    contextualPrompt += `**TERMINOLOGY APPROACH**: Technical ${targetLang} terminology with accuracy for system concepts\n`;
+                } else {
+                    contextualPrompt += `**DOMAIN**: General Educational Content\n`;
+                    contextualPrompt += `**TERMINOLOGY APPROACH**: Clear, accessible ${targetLang} with educational clarity\n`;
+                }
+                
+                contextualPrompt += `**TONE**: Professional\n`;
+                contextualPrompt += `**AUDIENCE**: Learners/Employees\n`;
+                contextualPrompt += `**SPECIAL CONSIDERATIONS**: UI elements, learning flow, interaction clarity\n`;
+                contextualPrompt += `**QUALITY STANDARDS**: Maintain XML structure integrity, preserve spacing, ensure ${targetLang} linguistic accuracy\n`;
+                
+                return contextualPrompt.trim();
+            }
+
+            displayContext() {
+                const contextSection = document.getElementById('contextSection');
+                const contextDisplay = document.getElementById('contextDisplay');
+                
+                contextDisplay.textContent = this.translationContext;
+                contextSection.style.display = 'block';
+            }
+
+            async translateXLF() {
+                if (!this.isProcessed || !this.allTexts.length) {
+                    this.log('error', 'Please process XLF first');
+                    return;
+                }
+
+                try {
+                    this.log('info', '🔄 Step 2: Starting contextual translation...');
+                    document.getElementById('translateBtn').disabled = true;
+
+                    // Create chunks
+                    this.chunks = this.createChunksFromTexts(this.allTexts, 10);
+                    this.stats.totalChunks = this.chunks.length;
+                    this.updateProgressStats(0, this.stats.totalTexts, 0, this.stats.totalChunks, 0);
+
+                    // Process chunks sequentially
+                    await this.processChunksSequentially();
+
+                    // Assemble final XLF
+                    this.processedData = this.assembleFinalXLF();
+
+                    // Enable download
+                    document.getElementById('downloadBtn').disabled = false;
+                    document.getElementById('translateBtn').disabled = false; // Allow re-translation
+                    
+                    this.log('success', '✅ Translation completed successfully! Ready for download.');
+
+                } catch (error) {
+                    this.log('error', `Translation error: ${error.message}`);
+                    document.getElementById('translateBtn').disabled = false;
+                }
+            }
+
+            createChunksFromTexts(allTexts, chunkSize) {
+                const chunks = [];
+                for (let i = 0; i < allTexts.length; i += chunkSize) {
+                    chunks.push({
+                        texts: allTexts.slice(i, i + chunkSize),
+                        startIndex: i
+                    });
+                }
+                return chunks;
+            }
+
+            async processChunksSequentially() {
+                console.log(`[SEQUENTIAL] Processing ${this.chunks.length} chunks`);
+                
+                for (let i = 0; i < this.chunks.length; i++) {
+                    const chunk = this.chunks[i];
+                    
+                    try {
+                        const chunkStartTime = Date.now();
+                        const result = await this.processSingleChunk(chunk, i);
+                        const chunkTime = Date.now() - chunkStartTime;
+                        
+                        // Map translations back to global texts
+                        this.mapChunkTranslationsToGlobal(chunk, result.translations);
+                        
+                        // Update stats
+                        this.stats.completedChunks = i + 1;
+                        this.stats.processedTexts += Object.keys(result.translations).length;
+                        const progress = Math.round((i + 1) / this.chunks.length * 100);
+                        
+                        this.updateProgressStats(this.stats.processedTexts, this.stats.totalTexts, this.stats.completedChunks, this.stats.totalChunks, progress);
+                        
+                        const contextStatus = result.stats.contextualTranslation ? 'with context' : 'standard';
+                        this.log('success', `Chunk ${i + 1}/${this.chunks.length}: Completed in ${chunkTime}ms - ${result.stats.realTranslations} translations (${contextStatus})`);
+                        
+                        if (i < this.chunks.length - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        
+                    } catch (error) {
+                        this.log('error', `Chunk ${i + 1}/${this.chunks.length}: Failed - ${error.message}`);
+                    }
+                }
+                
+                this.log('sequential', `Processing completed: ${this.stats.completedChunks}/${this.stats.totalChunks} chunks successful with contextual intelligence applied`);
+            }
+
+            async processSingleChunk(chunk, chunkIndex) {
+                const chunkTexts = chunk.texts.map(t => t.text);
+                
+                const payload = {
+                    chunkTexts: chunkTexts,
+                    chunkIndex: chunkIndex,
+                    totalChunks: this.chunks.length,
+                    sourceLang: document.getElementById('sourceLang').value,
+                    targetLang: document.getElementById('targetLang').value,
+                    translationContext: this.translationContext,
+                    sourceContent: this.fileContent
+                };
+
+                this.log('context', `Chunk ${chunkIndex + 1}: Sending ${chunkTexts.length} texts + ${this.translationContext?.length || 0}-char context to translation backend`);
+
+                const response = await fetch('/api/process-xlf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Accept': 'application/json; charset=utf-8'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Unknown backend error');
+                }
+
+                return result;
+            }
+
+            mapChunkTranslationsToGlobal(chunk, chunkTranslations) {
+                Object.keys(chunkTranslations).forEach(localIndex => {
+                    const globalIndex = chunk.startIndex + parseInt(localIndex);
+                    if (this.allTexts[globalIndex]) {
+                        this.allTexts[globalIndex].translation = chunkTranslations[localIndex];
+                    }
+                });
+            }
+
+            assembleFinalXLF() {
+                console.log('[ASSEMBLE] Creating final XLF with translations');
+                
+                let finalXLF = this.fileContent;
+                
+                // Process each text with its translation
+                this.allTexts.forEach((textObj) => {
+                    if (textObj.translation) {
+                        // Find the trans-unit containing this source
+                        const parser = new DOMParser();
+                        const xmlDoc = parser.parseFromString(finalXLF, 'text/xml');
+                        
+                        const transUnits = xmlDoc.querySelectorAll('trans-unit');
+                        transUnits.forEach((transUnit) => {
+                            const sourceElement = transUnit.querySelector('source');
+                            if (sourceElement && this.extractTextContent(sourceElement).trim() === textObj.text) {
+                                // Find or create target element
+                                let targetElement = transUnit.querySelector('target');
+                                if (!targetElement) {
+                                    targetElement = xmlDoc.createElement('target');
+                                    transUnit.appendChild(targetElement);
+                                }
+                                
+                                // Set translation
+                                targetElement.innerHTML = textObj.translation;
+                                
+                                // Update state
+                                transUnit.setAttribute('approved', 'yes');
+                            }
+                        });
+                        
+                        finalXLF = new XMLSerializer().serializeToString(xmlDoc);
+                    }
+                });
+                
+                console.log('[ASSEMBLE] Final XLF assembled with all translations');
+                return finalXLF;
+            }
+
+            downloadXLF() {
+                if (!this.processedData) {
+                    this.log('error', 'No processed data available for download');
+                    return;
+                }
+
+                const blob = new Blob([this.processedData], { type: 'application/xml; charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `translated_${Date.now()}.xlf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                this.log('success', '📥 XLF file downloaded successfully!');
+            }
+
+            updateProgressStats(processed, total, completedChunks, totalChunks, percentage) {
+                document.getElementById('processedTexts').textContent = processed;
+                document.getElementById('totalTexts').textContent = total;
+                document.getElementById('completedChunks').textContent = completedChunks;
+                document.getElementById('totalChunks').textContent = totalChunks;
+                document.getElementById('progressPercentage').textContent = `${percentage}%`;
+            }
+
+            log(type, message) {
+                const logContent = document.getElementById('logContent');
+                const timestamp = new Date().toLocaleTimeString();
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry log-${type}`;
+                logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+                
+                logContent.appendChild(logEntry);
+                logContent.scrollTop = logContent.scrollHeight;
+                
+                console.log(`[${type.toUpperCase()}] ${message}`);
+            }
+        }
+
+        // Global utility functions
+        function copyContextToClipboard() {
+            const contextDisplay = document.getElementById('contextDisplay');
+            navigator.clipboard.writeText(contextDisplay.textContent);
+            console.log('Context copied to clipboard');
+        }
+
+        function toggleContextDisplay() {
+            const contextSection = document.getElementById('contextSection');
+            const isVisible = contextSection.style.display !== 'none';
+            contextSection.style.display = isVisible ? 'none' : 'block';
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            window.xlfTranslator = new XLFTranslatorRender();
+        });
+    </script>
+</body>
+</html>

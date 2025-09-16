@@ -796,7 +796,7 @@
                     document.getElementById('translateBtn').disabled = true;
 
                     // Create chunks
-                    this.chunks = this.createChunksFromTexts(this.allTexts, 10);
+                    this.chunks = this.createChunksFromTexts(this.allTexts, 50);
                     this.stats.totalChunks = this.chunks.length;
                     this.updateProgressStats(0, this.stats.totalTexts, 0, this.stats.totalChunks, 0);
 
@@ -911,44 +911,138 @@
                 });
             }
 
-            assembleFinalXLF() {
-                console.log('[ASSEMBLE] Creating final XLF with translations');
-                
-                let finalXLF = this.fileContent;
-                
-                // Process each text with its translation
-                this.allTexts.forEach((textObj) => {
-                    if (textObj.translation) {
-                        // Find the trans-unit containing this source
-                        const parser = new DOMParser();
-                        const xmlDoc = parser.parseFromString(finalXLF, 'text/xml');
-                        
-                        const transUnits = xmlDoc.querySelectorAll('trans-unit');
-                        transUnits.forEach((transUnit) => {
-                            const sourceElement = transUnit.querySelector('source');
-                            if (sourceElement && this.extractTextContent(sourceElement).trim() === textObj.text) {
-                                // Find or create target element
-                                let targetElement = transUnit.querySelector('target');
-                                if (!targetElement) {
-                                    targetElement = xmlDoc.createElement('target');
-                                    transUnit.appendChild(targetElement);
-                                }
-                                
-                                // Set translation
-                                targetElement.innerHTML = textObj.translation;
-                                
-                                // Update state
-                                transUnit.setAttribute('approved', 'yes');
-                            }
-                        });
-                        
-                        finalXLF = new XMLSerializer().serializeToString(xmlDoc);
-                    }
-                });
-                
-                console.log('[ASSEMBLE] Final XLF assembled with all translations');
-                return finalXLF;
-            }
+			// ========================================
+			// FUNCIÓN CORREGIDA: assembleFinalXLF()
+			// Maneja XML válido y caracteres especiales
+			// ========================================
+
+			assembleFinalXLF() {
+				console.log('[ASSEMBLE] Creating final XLF with translations');
+				
+				let finalXLF = this.fileContent;
+				
+				// Process each text with its translation
+				this.allTexts.forEach((textObj) => {
+					if (textObj.translation) {
+						try {
+							// Parse the current XLF
+							const parser = new DOMParser();
+							const xmlDoc = parser.parseFromString(finalXLF, 'text/xml');
+							
+							// Check for XML parsing errors
+							const parseError = xmlDoc.querySelector('parsererror');
+							if (parseError) {
+								console.error('[ASSEMBLE] XML parsing error:', parseError.textContent);
+								return;
+							}
+							
+							const transUnits = xmlDoc.querySelectorAll('trans-unit');
+							let translationApplied = false;
+							
+							transUnits.forEach((transUnit) => {
+								if (translationApplied) return; // Skip if already applied
+								
+								const sourceElement = transUnit.querySelector('source');
+								if (sourceElement && this.extractTextContent(sourceElement).trim() === textObj.text) {
+									// Find or create target element
+									let targetElement = transUnit.querySelector('target');
+									if (!targetElement) {
+										targetElement = xmlDoc.createElement('target');
+										transUnit.appendChild(targetElement);
+									}
+									
+									// ✅ SOLUCIÓN: Usar textContent en lugar de innerHTML para XML válido
+									// Si la traducción contiene XML válido, usar innerHTML
+									// Si contiene texto plano, usar textContent
+									if (this.isValidXMLContent(textObj.translation)) {
+										console.log(`[ASSEMBLE] Applying XML translation for text: ${textObj.text.substring(0, 50)}...`);
+										targetElement.innerHTML = textObj.translation;
+									} else {
+										console.log(`[ASSEMBLE] Applying text translation for text: ${textObj.text.substring(0, 50)}...`);
+										// Escapar caracteres XML especiales
+										const escapedTranslation = this.escapeXMLCharacters(textObj.translation);
+										targetElement.textContent = escapedTranslation;
+									}
+									
+									// Update trans-unit attributes
+									transUnit.setAttribute('approved', 'yes');
+									if (!transUnit.getAttribute('state')) {
+										transUnit.setAttribute('state', 'translated');
+									}
+									
+									translationApplied = true;
+								}
+							});
+							
+							if (translationApplied) {
+								finalXLF = new XMLSerializer().serializeToString(xmlDoc);
+							} else {
+								console.warn(`[ASSEMBLE] Translation not applied for text: ${textObj.text.substring(0, 50)}...`);
+							}
+							
+						} catch (error) {
+							console.error(`[ASSEMBLE] Error processing translation for text "${textObj.text.substring(0, 50)}...":`, error);
+							// Continue with next translation instead of failing completely
+						}
+					}
+				});
+				
+				console.log('[ASSEMBLE] Final XLF assembled with all translations');
+				return finalXLF;
+			}
+
+			// ========================================
+			// NUEVAS FUNCIONES DE UTILIDAD
+			// ========================================
+
+			/**
+			 * Verifica si el contenido es XML válido
+			 */
+			isValidXMLContent(content) {
+				// Check if content contains XML tags
+				const xmlTagPattern = /<\s*\w+(\s+[^>]*)?\s*>/;
+				const hasXMLTags = xmlTagPattern.test(content);
+				
+				if (!hasXMLTags) {
+					return false; // Es texto plano
+				}
+				
+				// Try to parse as XML fragment
+				try {
+					const testXML = `<root>${content}</root>`;
+					const parser = new DOMParser();
+					const testDoc = parser.parseFromString(testXML, 'text/xml');
+					const parseError = testDoc.querySelector('parsererror');
+					return !parseError; // Si no hay error, es XML válido
+				} catch (error) {
+					return false; // Si hay excepción, no es XML válido
+				}
+			}
+
+			/**
+			 * Escapa caracteres especiales XML
+			 */
+			escapeXMLCharacters(text) {
+				if (typeof text !== 'string') return text;
+				
+				return text
+					.replace(/&/g, '&amp;')   // & debe ser primero
+					.replace(/</g, '&lt;')    // <
+					.replace(/>/g, '&gt;')    // >
+					.replace(/"/g, '&quot;')  // "
+					.replace(/'/g, '&apos;'); // '
+			}
+
+			/**
+			 * Función mejorada de logging con más detalle
+			 */
+			logTranslationApplication(textObj, success, error = null) {
+				if (success) {
+					console.log(`[ASSEMBLE-SUCCESS] Applied translation for: "${textObj.text.substring(0, 30)}..." -> "${textObj.translation.substring(0, 30)}..."`);
+				} else {
+					console.error(`[ASSEMBLE-ERROR] Failed to apply translation for: "${textObj.text.substring(0, 30)}..."`, error);
+				}
+			}
 
             downloadXLF() {
                 if (!this.processedData) {

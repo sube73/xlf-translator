@@ -796,7 +796,7 @@
                     document.getElementById('translateBtn').disabled = true;
 
                     // Create chunks
-                    this.chunks = this.createChunksFromTexts(this.allTexts, 500);
+                    this.chunks = this.createChunksFromTexts(this.allTexts, 50);
                     this.stats.totalChunks = this.chunks.length;
                     this.updateProgressStats(0, this.stats.totalTexts, 0, this.stats.totalChunks, 0);
 
